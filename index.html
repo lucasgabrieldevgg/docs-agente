@@ -104,12 +104,34 @@ pre.ia{background:#211d18;color:#f3ead9;font-family:var(--mono);font-size:.78rem
 .leitura pre{font-family:var(--mono);font-size:.88rem;white-space:pre-wrap;margin:0}
 .leitura h1{font-size:1.6rem;max-width:none}.leitura code{font-family:var(--mono);background:var(--papel);padding:1px 5px;border-radius:3px}
 footer{max-width:1080px;margin:0 auto;padding:16px 20px 40px;color:var(--tinta2);font-size:.85rem;border-top:1px solid var(--linha);margin-top:24px}
+
+/* tema escuro: a mesa à noite — tinta profunda, folha elevada, ocre aceso */
+[data-tema="escuro"]{
+  --papel:#171512; --folha:#221f1a; --tinta:#f1ead9; --tinta2:#a89f8d;
+  --linha:#35302a; --linha2:#4a4438; --ocre:#e08a3c; --ocre-forte:#eda75e;
+  --ocre-fundo:#3a2c17; --erro:#f0a3a3;
+  --sombra:0 1px 2px rgba(0,0,0,.4),0 16px 40px -24px rgba(0,0,0,.8);
+}
+[data-tema="escuro"] .topo{background:#100e0c}
+[data-tema="escuro"] .marca svg rect{fill:#f1ead9}
+[data-tema="escuro"] input[type=text],[data-tema="escuro"] select,[data-tema="escuro"] textarea{background:#1b1916}
+[data-tema="escuro"] .btn{background:var(--ocre);border-color:var(--ocre);color:#1c1917}
+[data-tema="escuro"] .btn:hover{background:var(--ocre-forte);border-color:var(--ocre-forte)}
+[data-tema="escuro"] .btn.claro{background:transparent;color:var(--tinta)}
+[data-tema="escuro"] .btn.claro:hover{background:#2a2721}
+[data-tema="escuro"] .btn.perigo:hover{background:#3d2222}
+[data-tema="escuro"] #aviso.erro{background:#3d2222}
+[data-tema="escuro"] pre.ia{background:#100e0c}
+[data-tema="escuro"] .folha-exemplo .doc-cab{border-bottom-color:var(--tinta)}
+#btn-tema{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--papel);border:1px solid #4a4438;border-radius:var(--raio-miudo);padding:8px 14px;font-weight:600;font-size:.88rem;transition:border-color 140ms var(--ease),transform 80ms var(--ease)}
+#btn-tema:hover{border-color:#b8b0a0}
+#btn-tema:active{transform:scale(.97)}
 </style>
 </head>
 <body>
 <header class="topo"><div class="topo-in">
   <div class="marca"><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="6" y="3" width="22" height="28" rx="2" fill="#f6f1e7"/><path d="M11 11h12M11 16h12M11 21h8" stroke="#1c1917" stroke-width="2" stroke-linecap="round"/><circle cx="24.5" cy="24.5" r="5.5" fill="#9a4a08"/><path d="M22.2 24.5l1.8 1.8 3.2-3.6" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg><span>Docs do Agente<small>documentos que a sua IA escreve, voce le</small></span></div>
-  <span class="codigo" id="top-code" hidden></span>
+  <span style="display:flex;gap:10px;align-items:center"><span class="codigo" id="top-code" hidden></span><button id="btn-tema" aria-label="Alternar tema claro e escuro">escuro</button></span>
 </div></header>
 <main>
   <div id="aviso" role="status"></div>
@@ -437,7 +459,24 @@ function sair(){
   if(S.ref){S.ref.off();S.ref=null}
   S.code=null; S.ativo=null; $('view-espaco').hidden=true; $('view-home').hidden=false; $('top-code').textContent=''; $('top-code').hidden=true; renderMeus();
 }
+
+function temaSalvo(){try{return localStorage.getItem('da_tema')}catch(e){return null}}
+function aplicaTema(tema){
+  document.documentElement.dataset.tema=tema;
+  $('btn-tema').textContent=tema==='escuro'?'claro':'escuro';
+}
+function temaInicial(){
+  const salvo=temaSalvo(); if(salvo==='escuro'||salvo==='claro') return salvo;
+  return (window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'escuro':'claro';
+}
+function alternaTema(){
+  const novo=document.documentElement.dataset.tema==='escuro'?'claro':'escuro';
+  try{localStorage.setItem('da_tema',novo)}catch(e){}
+  aplicaTema(novo);
+}
 function boot(){
+  aplicaTema(temaInicial());
+  $('btn-tema').addEventListener('click',alternaTema);
   $('btn-create').addEventListener('click',criarEspaco);
   $('btn-open').addEventListener('click',()=>abrirEspaco($('code-in').value));
   $('btn-salvar-doc').addEventListener('click',salvarPeloNavegador);

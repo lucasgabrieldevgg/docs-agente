@@ -75,11 +75,18 @@ d.querySelector('#new-corpo').value = 'decidimos a pauta';
 await d.querySelector('#btn-salvar-doc').click(); await new Promise(r => setTimeout(r, 30));
 ok(d.querySelectorAll('#docs .doc-item').length === antes + 1, 'humano salva documento novo e ele aparece na lista');
 ok((d.querySelector('#aviso')?.textContent || '').length >= 0, 'área de aviso existe');
+ok(!!d.querySelector('#btn-tema'), 'botão de tema existe no topo');
+d.querySelector('#btn-tema').click();
+ok(dom.window.document.documentElement.dataset.tema === 'escuro', 'clicar no botão liga o tema escuro');
+ok(dom.window.localStorage.getItem('da_tema') === 'escuro', 'escolha do tema fica salva no navegador');
+d.querySelector('#btn-tema').click();
+ok(dom.window.document.documentElement.dataset.tema === 'claro', 'clicar de novo volta ao claro');
 
 console.log('— guarda de identidade —');
 ok(/Fraunces/.test(html) && /IBM Plex Sans/.test(html) && /IBM Plex Mono/.test(html), 'tipografia Fraunces + IBM Plex Sans/Mono presente');
 ok(!/radial-gradient|7c5cff|4f6df5|8b5cf6|background-clip:\s*text/.test(html), 'sem gradiente/glow/roxo de IA no CSS');
 ok(/caixa-agente-default-rtdb\.firebaseio\.com/.test(html), 'usa o mesmo banco Firebase dos irmãos');
+ok(html.includes(String.raw`data-tema="escuro"`), 'tema escuro definido por variáveis, não por remendo');
 
 console.log('\nRESULTADO: ' + pass + ' ✓ / ' + fail + ' ✗' + (fail ? (' → ' + FALHAS.join(' | ')) : ' — SUÍTE INTEIRA PASSOU'));
 process.exit(fail ? 1 : 0);

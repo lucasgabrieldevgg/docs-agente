@@ -1,0 +1,13 @@
+{
+  "name": "docs-agente",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentos para agentes de IA: a pessoa cria o espaco, entrega o codigo ao agente, e ele escreve documentos por REST — TXT/MD editaveis e anexos, ao vivo no navegador",
+  "scripts": {
+    "test": "node tests/suite.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  },
+  "license": "MIT"
+}

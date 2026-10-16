@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Docs do Agente: a pessoa cria um espaco, entrega o codigo ao agente de IA, e ele escreve documentos por REST — TXT e Markdown editaveis, anexos, tudo ao vivo.">
+<title>Docs do Agente — documentos que a IA escreve</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='%231a1918'/><text x='32' y='42' text-anchor='middle' font-family='Georgia' font-size='26' fill='%23faf8f5'>D</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* DOCS DO AGENTE — Editorial de papel: tinta sobre papel quente, serifada de
+   titulo, mono so onde e dado (codigo, endpoint, data). Sem gradiente, sem glow. */
+:root{
+  --papel:#faf8f5; --folha:#ffffff; --tinta:#1a1918; --tinta2:#635f59;
+  --linha:#e8e4df; --linha2:#d1ccc4; --destaque:#9a4a08; --destaque-fundo:#fdf1e3;
+  --ok:#276749; --erro:#9b2c2c; --raio:2px;
+  --serif:'Fraunces',Georgia,serif; --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--sans);font-size:16px;line-height:1.55}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--destaque);outline-offset:2px}
+.topo{max-width:1060px;margin:0 auto;padding:28px 20px 0;display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.marca{font-family:var(--serif);font-weight:700;font-size:1.7rem;letter-spacing:-.01em}
+.marca small{display:block;font-family:var(--sans);font-weight:400;font-size:.85rem;color:var(--tinta2);letter-spacing:0}
+main{max-width:1060px;margin:0 auto;padding:20px}
+h1{font-family:var(--serif);font-weight:600;font-size:2rem;line-height:1.15;margin:.2em 0 .4em}
+h2{font-family:var(--serif);font-weight:600;font-size:1.3rem;margin:1.2em 0 .5em}
+.sub{color:var(--tinta2);max-width:62ch}
+.painel{background:var(--folha);border:1px solid var(--linha);border-radius:var(--raio);padding:20px;margin:18px 0}
+label{display:block;font-weight:600;font-size:.9rem;margin:12px 0 5px}
+input[type=text],select,textarea{width:100%;background:var(--folha);border:1px solid var(--linha2);border-radius:var(--raio);padding:9px 11px}
+textarea{min-height:220px;font-family:var(--mono);font-size:.9rem;line-height:1.6;resize:vertical}
+.btn{background:var(--tinta);color:var(--papel);border:1px solid var(--tinta);border-radius:var(--raio);padding:10px 18px;font-weight:600}
+.btn:active{transform:scale(.98)}
+.btn.claro{background:var(--folha);color:var(--tinta);border-color:var(--linha2)}
+.btn.perigo{background:var(--folha);color:var(--erro);border-color:var(--erro)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.linha-botoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.codigo{font-family:var(--mono);font-weight:600;font-size:1.05rem;background:var(--destaque-fundo);border:1px solid var(--linha2);padding:3px 9px;border-radius:var(--raio);white-space:nowrap}
+.meta{font-family:var(--mono);font-size:.8rem;color:var(--tinta2)}
+pre.ia{background:#211d18;color:#f3ead9;font-family:var(--mono);font-size:.78rem;line-height:1.6;padding:16px;border-radius:var(--raio);overflow:auto;white-space:pre-wrap;word-break:break-word;max-height:380px}
+#aviso{border:1px solid var(--linha2);background:var(--destaque-fundo);padding:10px 14px;border-radius:var(--raio);margin:14px 0}
+#aviso:empty{display:none}
+#aviso.erro{background:#fdecec;border-color:var(--erro)}
+.meus{display:grid;gap:8px;margin-top:10px}
+.meu{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--linha);background:var(--folha);padding:10px 14px;border-radius:var(--raio);text-align:left;width:100%}
+.meu:hover{border-color:var(--linha2)}
+.grade{display:grid;grid-template-columns:minmax(240px,4fr) minmax(0,8fr);gap:18px;align-items:start}
+@media(max-width:760px){.grade{grid-template-columns:1fr}}
+#docs{display:grid;gap:8px}
+.doc-item{display:block;width:100%;text-align:left;background:var(--folha);border:1px solid var(--linha);border-radius:var(--raio);padding:11px 13px}
+.doc-item:hover{border-color:var(--linha2)}
+.doc-item.ativo{border-color:var(--destaque);background:var(--destaque-fundo)}
+.doc-item b{display:block;font-weight:600;overflow-wrap:anywhere}
+.doc-item span{font-family:var(--mono);font-size:.75rem;color:var(--tinta2)}
+.vazio{color:var(--tinta2);border:1px dashed var(--linha2);padding:16px;border-radius:var(--raio)}
+.leitura{background:var(--folha);border:1px solid var(--linha);border-radius:var(--raio);padding:18px;overflow-wrap:anywhere}
+.leitura pre{font-family:var(--mono);font-size:.88rem;white-space:pre-wrap}
+.leitura h1{font-size:1.5rem}.leitura code{font-family:var(--mono);background:var(--papel);padding:1px 5px}
+.oculto{display:none!important}
+footer{max-width:1060px;margin:0 auto;padding:10px 20px 34px;color:var(--tinta2);font-size:.85rem}
+</style>
+</head>
+<body>
+<header class="topo">
+  <div class="marca">Docs do Agente<small>documentos que a sua IA escreve, voce le</small></div>
+  <span class="meta" id="top-code"></span>
+</header>
+<main>
+  <div id="aviso" role="status"></div>
+
+  <section id="view-home">
+    <h1>Um caderno que o seu agente sabe preencher.</h1>
+    <p class="sub">Crie um espaco, entregue o codigo e a instrucao pronta ao seu agente de IA, e ele passa a escrever documentos aqui dentro — sem login, sem token alem do proprio codigo, do mesmo jeito que a Caixa e a Sala funcionam.</p>
+
+    <div class="painel">
+      <h2>Criar um espaco</h2>
+      <label for="new-nome">Nome do espaco (opcional)</label>
+      <input type="text" id="new-nome" maxlength="60" placeholder="ex.: relatorios do projeto X">
+      <label for="new-ttl">Apagar sozinho depois de quanto tempo sem escrita?</label>
+      <select id="new-ttl">
+        <option value="72">3 dias</option>
+        <option value="120">5 dias</option>
+        <option value="168" selected>7 dias</option>
+      </select>
+      <div class="linha-botoes"><button class="btn" id="btn-create">Criar espaco</button></div>
+    </div>
+
+    <div class="painel">
+      <h2>Abrir um espaco pelo codigo</h2>
+      <label for="code-in">Codigo do espaco</label>
+      <input type="text" id="code-in" placeholder="DC-XXXXXX" autocomplete="off">
+      <div class="linha-botoes"><button class="btn claro" id="btn-open">Abrir</button></div>
+    </div>
+
+    <div class="painel" id="meus-wrap" hidden>
+      <h2>Seus espacos neste navegador</h2>
+      <div class="meus" id="meus"></div>
+    </div>
+  </section>
+
+  <section id="view-espaco" hidden>
+    <h1 id="espaco-nome">Espaco</h1>
+    <p class="sub"><span class="codigo" id="espaco-code"></span> <span class="meta" id="espaco-prazo"></span></p>
+
+    <div class="painel">
+      <h2>Entregue isto ao seu agente</h2>
+      <p class="sub">Uma vez so. A partir dai ele cria e atualiza documentos por REST, sem abrir navegador.</p>
+      <pre class="ia" id="ia-text"></pre>
+      <div class="linha-botoes">
+        <button class="btn" id="btn-copy-ia">Copiar instrucao</button>
+        <button class="btn claro" id="btn-sair">Sair do espaco</button>
+      </div>
+    </div>
+
+    <div class="grade">
+      <div>
+        <h2>Documentos</h2>
+        <div id="docs"></div>
+      </div>
+      <div>
+        <div class="painel" style="margin-top:0">
+          <h2 id="editor-titulo">Novo documento</h2>
+          <input type="hidden" id="edit-id">
+          <label for="new-titulo">Titulo</label>
+          <input type="text" id="new-titulo" maxlength="120" placeholder="ex.: relatorio-semanal">
+          <label for="new-formato">Formato</label>
+          <select id="new-formato"><option value="txt">Texto (.txt)</option><option value="md">Markdown (.md)</option></select>
+          <label for="new-corpo">Conteudo</label>
+          <textarea id="new-corpo" placeholder="escreva aqui — ou deixe o agente escrever por REST"></textarea>
+          <div class="linha-botoes">
+            <button class="btn" id="btn-salvar-doc">Salvar documento</button>
+            <button class="btn claro" id="btn-novo-doc">Novo</button>
+            <button class="btn claro" id="btn-baixar-doc" disabled>Baixar</button>
+            <button class="btn perigo" id="btn-apagar-doc" disabled>Apagar</button>
+          </div>
+          <label for="file-anexo">Ou anexar um arquivo (qualquer tipo, ate 350KB)</label>
+          <input type="file" id="file-anexo">
+        </div>
+        <div class="leitura" id="leitura" hidden></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>Docs do Agente — mesmo banco e mesmo molde do caixa-agente e da Sala de Agentes. Quem tem o codigo do espaco, entra: nao escreva segredos nos documentos.</footer>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+'use strict';
+/* Docs do Agente — núcleo DA (puro, testável) + o app.
+   Espaço = boxes/DCxxxxxx no mesmo RTDB dos projetos-irmãos. */
+const FB_CFG={apiKey:"AIzaSyClWVJPjl8EP2oI6L5dTP7lWuDx1LHgSYI",authDomain:"caixa-agente.firebaseapp.com",databaseURL:"https://caixa-agente-default-rtdb.firebaseio.com",projectId:"caixa-agente"};
+const REST_BASE='https://caixa-agente-default-rtdb.firebaseio.com/boxes/';
+const ALF='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const TETO_TEXTO=300*1024, TETO_ANEXO=350*1024;
+
+const DA={
+  TETO_TEXTO, TETO_ANEXO,
+  gerarCodigo(){const p=n=>Array.from({length:n},()=>ALF[Math.floor(Math.random()*ALF.length)]).join('');return 'DC'+p(6)},
+  normalizaCodigo(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'')},
+  fmtCodigo(c){c=DA.normalizaCodigo(c);return c.length===8?c.slice(0,2)+'-'+c.slice(2):c},
+  eCodigoValido(c){return /^DC[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/.test(DA.normalizaCodigo(c||''))},
+  novoDocId(agora){return 'd'+(agora||Date.now()).toString(36)+Math.floor(Math.random()*1296).toString(36).padStart(2,'0')},
+  ttlDe(v){const t=v&&v.ttlHoras;return (typeof t==='number'&&t>=72&&t<=168)?Math.round(t):168},
+  expiraInfo(v,agora){
+    const ttlH=DA.ttlDe(v), t=v&&typeof v.criado==='number'?v.criado:0;
+    if(!t) return {ttlH,expirada:false,txt:'sem prazo',restamMs:Infinity};
+    const restamMs=t+ttlH*3600000-(agora||Date.now());
+    if(restamMs<=0) return {ttlH,expirada:true,txt:'expirado',restamMs};
+    const h=Math.floor(restamMs/3600000), d=Math.floor(h/24);
+    return {ttlH,expirada:false,restamMs,txt:d>=1?('expira em '+d+'d '+(h%24)+'h'):('expira em '+h+'h')};
+  },
+  sanitizeTitulo(s){return String(s||'').trim().slice(0,120)||'sem titulo'},
+  extensaoDe(doc){return doc&&doc.formato==='md'?'md':doc&&doc.formato==='arquivo'?'bin':'txt'},
+  nomeArquivoDe(doc){
+    if(doc&&doc.formato==='arquivo') return DA.sanitizeTitulo(doc.titulo);
+    return DA.sanitizeTitulo(doc&&doc.titulo).replace(/[\\/:*?"<>|]/g,'-')+'.'+DA.extensaoDe(doc);
+  },
+  conteudoOk(t){return typeof t==='string'&&t.length>0&&t.length<=TETO_TEXTO},
+  anexoOk(bytes){return typeof bytes==='number'&&bytes>0&&bytes<=TETO_ANEXO},
+  resumoDocs(docs){
+    if(!docs||typeof docs!=='object') return [];
+    return Object.keys(docs).map(id=>({...docs[id],id})).filter(d=>d&&typeof d.titulo==='string').sort((a,b)=>(b.t||0)-(a.t||0));
+  },
+  escapeHtml(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')},
+  renderMd(md){
+    const esc=DA.escapeHtml(String(md||''));
+    const linhas=esc.split('\n'); let html='',emLista=false;
+    const fechaLista=()=>{if(emLista){html+='</ul>';emLista=false}};
+    for(const lin of linhas){
+      const h=lin.match(/^(#{1,3}) (.+)/);
+      if(h){fechaLista();html+='<h'+h[1].length+'>'+h[2]+'</h'+h[1].length+'>';continue}
+      if(/^- /.test(lin)){if(!emLista){html+='<ul>';emLista=true}html+='<li>'+lin.slice(2)+'</li>';continue}
+      fechaLista(); if(lin.trim()) html+='<p>'+lin+'</p>';
+    }
+    fechaLista();
+    return html.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  },
+  buildInstructions(code){
+    code=DA.normalizaCodigo(code); const base=REST_BASE+code;
+    return [
+'================================================================',
+'DOCS DO AGENTE (espaco '+DA.fmtCodigo(code)+') — PROTOCOLO DO AGENTE',
+'================================================================',
+'Seu humano criou este espaco para voce ESCREVER DOCUMENTOS nele:',
+'relatorios, atas, rascunhos, entregas. Sem login, sem token alem do',
+'proprio codigo do espaco. Escreveu, ele le ao vivo no navegador.',
+'',
+'LER O QUE JA EXISTE:',
+'  GET  '+base+'/docs.json',
+'  GET  '+base+'/docs/<ID>.json        (um documento)',
+'',
+'CRIAR OU ATUALIZAR UM DOCUMENTO DE TEXTO (PUT troca o conteudo todo):',
+'  PUT  '+base+'/docs/<ID>.json',
+'  {"titulo":"relatorio-semanal","formato":"txt","conteudo":"...","autor":"<seu nome>","t":<ms agora>,"editado":<ms agora>}',
+'  formato e "txt" ou "md". <ID>: use "d" + timestamp em base36 + 2 letras.',
+'  Conteudo de texto: ate '+Math.round(TETO_TEXTO/1024)+'KB por documento.',
+'',
+'ENTREGAR UM ARQUIVO (PDF, imagem, zip, qualquer tipo ate 350KB):',
+'  PUT  '+base+'/docs/<ID>.json',
+'  {"titulo":"entrega.pdf","formato":"arquivo","tipo":"application/pdf","conteudo":"data:application/pdf;base64,....","tamanho":<bytes>,"autor":"<seu nome>","t":<ms agora>,"editado":<ms agora>}',
+'',
+'APAGAR:  DELETE '+base+'/docs/<ID>.json',
+'',
+'REGRA DO PRAZO: o espaco apaga sozinho apos dias sem escrita.',
+'Toda vez que escrever, renove:  PUT '+base+'/criado.json  com o ms atual.',
+'Nao escreva segredos (senhas, chaves) nos documentos.'
+    ].join('\n');
+  }
+};
+
+/* ---------- app ---------- */
+const $=id=>document.getElementById(id);
+const S={code:null,nome:'',docs:{},demo:false,db:null,ref:null,ativo:null};
+function aviso(msg,erro){const a=$('aviso');a.textContent=msg||'';a.className=erro?'erro':''}
+function fbInit(){
+  try{
+    if(!window.firebase||!firebase.database) return null;
+    if(!firebase.apps.length) firebase.initializeApp(FB_CFG);
+    return firebase.database();
+  }catch(e){return null}
+}
+function meusGet(){try{return JSON.parse(localStorage.getItem('da_meus')||'[]')}catch(e){return[]}}
+function meusAdd(code,nome){
+  let a=meusGet().filter(x=>x.c!==code); a.unshift({c:code,n:nome||''}); a=a.slice(0,6);
+  try{localStorage.setItem('da_meus',JSON.stringify(a))}catch(e){}
+  renderMeus();
+}
+function renderMeus(){
+  const a=meusGet(); $('meus-wrap').hidden=!a.length;
+  $('meus').innerHTML=a.map(x=>'<button class="meu" data-code="'+x.c+'"><span><b>'+DA.escapeHtml(x.n||'espaco sem nome')+'</b><br><span class="meta">'+DA.fmtCodigo(x.c)+'</span></span><span>abrir</span></button>').join('');
+  $('meus').querySelectorAll('.meu').forEach(b=>b.addEventListener('click',()=>abrirEspaco(b.dataset.code)));
+}
+async function criarEspaco(){
+  const nome=$('new-nome').value.trim(), ttl=Number($('new-ttl').value);
+  S.db=S.db||fbInit();
+  if(!S.db){ entrarDemo(null,nome,ttl); aviso('Sem conexao com o banco agora: espaco de demonstracao, so neste navegador.'); return }
+  try{
+    let code,tries=0;
+    while(true){
+      code=DA.gerarCodigo();
+      const init={nome:nome||'espaco sem nome',criado:Date.now(),ttlHoras:ttl,docs:{boasvindas:{titulo:'comece-por-aqui',formato:'md',conteudo:'# Comece por aqui\n\nPeça ao seu agente para escrever o primeiro documento — ou escreva voce mesmo no editor ao lado.',autor:'docs-agente',t:Date.now(),editado:Date.now()}}};
+      const res=await S.db.ref('boxes/'+code).transaction(cur=>{if(cur)return;return init});
+      if(res.committed){ mostrarEspaco(code,init); meusAdd(code,nome); return }
+      if(++tries>6) throw new Error('codigo ocupado demais, tente de novo');
+    }
+  }catch(e){ entrarDemo(null,nome,ttl); aviso('Banco indisponivel ('+e.message+'): entrando em demonstracao.'); }
+}
+async function abrirEspaco(codeBruto){
+  const code=DA.normalizaCodigo(codeBruto);
+  if(!DA.eCodigoValido(code)){ aviso('Codigo invalido: o formato e DC-XXXXXX.',true); return }
+  S.db=S.db||fbInit();
+  if(!S.db){ aviso('Sem conexao com o banco agora — nao da para abrir o espaco.',true); return }
+  try{
+    const snap=await S.db.ref('boxes/'+code).once('value'); const v=snap.val();
+    if(!v){ aviso('Espaco nao encontrado (pode ter expirado).',true); return }
+    if(DA.expiraInfo(v).expirada){ await S.db.ref('boxes/'+code).remove(); aviso('Esse espaco ja tinha expirado e foi apagado.',true); return }
+    mostrarEspaco(code,v); meusAdd(code,v.nome||'');
+  }catch(e){ aviso('Falha ao abrir: '+e.message,true) }
+}
+function mostrarEspaco(code,v){
+  S.code=code; S.nome=v.nome||''; S.demo=false;
+  if(S.ref) S.ref.off();
+  S.ref=S.db.ref('boxes/'+code);
+  S.ref.on('value',snap=>{const val=snap.val()||{}; S.docs=val.docs||{}; S.nome=val.nome||S.nome; pintarEspaco(val)});
+  pintarEspaco(v);
+}
+function entrarDemo(code,nome,ttl){
+  S.demo=true; S.code=code||DA.gerarCodigo(); S.nome=nome||'espaco de demonstracao'; S.ativo=null;
+  S.docs={boasvindas:{titulo:'comece-por-aqui',formato:'md',conteudo:'# Comece por aqui\n\nIsto e o modo demonstracao (sem Firebase). No espaco de verdade, seu agente escreve por REST e aparece aqui ao vivo.',autor:'docs-agente',t:Date.now(),editado:Date.now()}};
+  meusAdd(S.code,S.nome); pintarEspaco({nome:S.nome,criado:Date.now(),ttlHoras:ttl||168});
+}
+function pintarEspaco(v){
+  $('view-home').hidden=true; $('view-espaco').hidden=false;
+  $('espaco-nome').textContent=S.nome||'Espaco';
+  $('espaco-code').textContent=DA.fmtCodigo(S.code);
+  $('top-code').textContent=DA.fmtCodigo(S.code);
+  $('espaco-prazo').textContent='· '+DA.expiraInfo(v||{criado:Date.now()}).txt+' · cada escrita renova';
+  $('ia-text').textContent=DA.buildInstructions(S.code);
+  pintarDocs();
+}
+function pintarDocs(){
+  const lista=DA.resumoDocs(S.docs);
+  $('docs').innerHTML=lista.length?lista.map(d=>
+    '<button class="doc-item'+(S.ativo===d.id?' ativo':'')+'" data-id="'+DA.escapeHtml(d.id)+'"><b>'+DA.escapeHtml(d.titulo)+'</b><span>.'+DA.escapeHtml(DA.extensaoDe(d))+' · '+DA.escapeHtml(d.autor||'alguem')+' · '+new Date(d.editado||d.t||Date.now()).toLocaleString('pt-BR')+'</span></button>'
+  ).join(''):'<div class="vazio">Nenhum documento ainda. Escreva no editor ou entregue a instrucao ao agente.</div>';
+  $('docs').querySelectorAll('.doc-item').forEach(b=>b.addEventListener('click',()=>abrirDoc(b.dataset.id)));
+}
+function abrirDoc(id){
+  const d=S.docs[id]; if(!d) return;
+  S.ativo=id; $('edit-id').value=id;
+  $('new-titulo').value=d.titulo||''; $('new-formato').value=d.formato==='md'?'md':'txt';
+  $('new-corpo').value=d.formato==='arquivo'?'(anexo — baixe para ver)':(d.conteudo||'');
+  $('new-corpo').disabled=d.formato==='arquivo';
+  $('btn-baixar-doc').disabled=false; $('btn-apagar-doc').disabled=false;
+  $('editor-titulo').textContent='Editando: '+(d.titulo||'documento');
+  const lei=$('leitura'); lei.hidden=false;
+  lei.innerHTML=d.formato==='md'?DA.renderMd(d.conteudo||''):('<pre>'+DA.escapeHtml(d.formato==='arquivo'?'Anexo: '+d.titulo+' ('+(d.tipo||'arquivo')+', '+Math.round((d.tamanho||0)/1024)+'KB) — use Baixar.':(d.conteudo||''))+'</pre>');
+  pintarDocs();
+}
+function novoDoc(){
+  S.ativo=null; $('edit-id').value=''; $('new-titulo').value=''; $('new-corpo').value=''; $('new-corpo').disabled=false;
+  $('new-formato').value='txt'; $('btn-baixar-doc').disabled=true; $('btn-apagar-doc').disabled=true;
+  $('editor-titulo').textContent='Novo documento'; $('leitura').hidden=true; pintarDocs();
+}
+async function salvarPeloNavegador(){
+  const titulo=DA.sanitizeTitulo($('new-titulo').value), formato=$('new-formato').value, conteudo=$('new-corpo').value;
+  if(!DA.conteudoOk(conteudo)){ aviso('Documento vazio ou maior que '+Math.round(TETO_TEXTO/1024)+'KB.',true); return }
+  const t=Date.now(), id=$('edit-id').value||DA.novoDocId(t);
+  const doc={titulo,formato,conteudo,autor:'humano',t:(S.docs[id]&&S.docs[id].t)||t,editado:t};
+  try{ await gravarDoc(id,doc); S.ativo=id; $('edit-id').value=id; aviso('Documento salvo: '+titulo); if(S.demo){S.docs[id]=doc;pintarDocs();abrirDoc(id)} }
+  catch(e){ aviso('Falha ao salvar: '+e.message,true) }
+}
+async function gravarDoc(id,doc){
+  if(S.demo) return;
+  await S.db.ref('boxes/'+S.code+'/docs/'+id).set(doc);
+  await S.db.ref('boxes/'+S.code+'/criado').set(Date.now());
+}
+async function apagarDoc(){
+  const id=$('edit-id').value; if(!id) return;
+  try{
+    if(S.demo){ delete S.docs[id] } else { await S.db.ref('boxes/'+S.code+'/docs/'+id).remove(); await S.db.ref('boxes/'+S.code+'/criado').set(Date.now()) }
+    novoDoc(); aviso('Documento apagado.'); if(S.demo) pintarDocs();
+  }catch(e){ aviso('Falha ao apagar: '+e.message,true) }
+}
+function baixarDoc(){
+  const d=S.docs[S.ativo]; if(!d) return;
+  const a=document.createElement('a');
+  if(d.formato==='arquivo'){ a.href=d.conteudo; a.download=DA.nomeArquivoDe(d) }
+  else{
+    const blob=new Blob([d.conteudo||''],{type:'text/plain;charset=utf-8'});
+    a.href=URL.createObjectURL(blob); a.download=DA.nomeArquivoDe(d);
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }
+  a.click();
+}
+function anexarArquivo(ev){
+  const f=ev.target.files&&ev.target.files[0]; if(!f) return;
+  if(!DA.anexoOk(f.size)){ aviso('Anexo recusado: o teto e 350KB e o arquivo tem '+Math.round(f.size/1024)+'KB.',true); ev.target.value=''; return }
+  const r=new FileReader();
+  r.onload=async()=>{
+    const t=Date.now(), id=DA.novoDocId(t);
+    const doc={titulo:f.name,formato:'arquivo',tipo:f.type||'application/octet-stream',conteudo:String(r.result),tamanho:f.size,autor:'humano',t,editado:t};
+    try{ await gravarDoc(id,doc); if(S.demo){S.docs[id]=doc;pintarDocs()} aviso('Anexo guardado: '+f.name) }
+    catch(e){ aviso('Falha ao anexar: '+e.message,true) }
+    ev.target.value='';
+  };
+  r.onerror=()=>aviso('Nao consegui ler esse arquivo.',true);
+  r.readAsDataURL(f);
+}
+function copiarInstrucao(){
+  const txt=$('ia-text').textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(()=>aviso('Instrucao copiada. Cole no seu agente.'),()=>aviso('Selecione o texto e copie manualmente.',true));
+  else aviso('Selecione o texto da instrucao e copie manualmente.');
+}
+function sair(){
+  if(S.ref){S.ref.off();S.ref=null}
+  S.code=null; S.ativo=null; $('view-espaco').hidden=true; $('view-home').hidden=false; $('top-code').textContent=''; renderMeus();
+}
+function boot(){
+  $('btn-create').addEventListener('click',criarEspaco);
+  $('btn-open').addEventListener('click',()=>abrirEspaco($('code-in').value));
+  $('btn-salvar-doc').addEventListener('click',salvarPeloNavegador);
+  $('btn-novo-doc').addEventListener('click',novoDoc);
+  $('btn-apagar-doc').addEventListener('click',apagarDoc);
+  $('btn-baixar-doc').addEventListener('click',baixarDoc);
+  $('btn-copy-ia').addEventListener('click',copiarInstrucao);
+  $('btn-sair').addEventListener('click',sair);
+  $('file-anexo').addEventListener('change',anexarArquivo);
+  renderMeus();
+  const daUrl=new URLSearchParams(location.search).get('c');
+  if(daUrl&&DA.eCodigoValido(daUrl)) abrirEspaco(daUrl);
+}
+window.DA=DA;
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+</script>
+</body>
+</html>

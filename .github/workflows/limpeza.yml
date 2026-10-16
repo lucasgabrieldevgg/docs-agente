@@ -1,0 +1,19 @@
+name: Limpeza de espacos expirados
+
+on:
+  schedule:
+    - cron: '53 6 * * *'   # todo dia às 06:53 UTC (03:53 em Brasília)
+  workflow_dispatch:
+
+jobs:
+  limpar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install firebase-admin --no-save
+      - run: node scripts/limpeza.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

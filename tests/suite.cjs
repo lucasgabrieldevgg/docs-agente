@@ -76,11 +76,13 @@ await d.querySelector('#btn-salvar-doc').click(); await new Promise(r => setTime
 ok(d.querySelectorAll('#docs .doc-item').length === antes + 1, 'humano salva documento novo e ele aparece na lista');
 ok((d.querySelector('#aviso')?.textContent || '').length >= 0, 'área de aviso existe');
 ok(!!d.querySelector('#btn-tema'), 'botão de tema existe no topo');
+ok(!!d.querySelector('#btn-tema svg'), 'botão de tema é ícone SVG, sem texto');
 d.querySelector('#btn-tema').click();
 ok(dom.window.document.documentElement.dataset.tema === 'escuro', 'clicar no botão liga o tema escuro');
 ok(dom.window.localStorage.getItem('da_tema') === 'escuro', 'escolha do tema fica salva no navegador');
 d.querySelector('#btn-tema').click();
 ok(dom.window.document.documentElement.dataset.tema === 'claro', 'clicar de novo volta ao claro');
+ok(d.querySelector('#btn-tema').textContent.trim() === '', 'botão de tema não carrega texto nenhum');
 
 console.log('— guarda de identidade —');
 ok(/Fraunces/.test(html) && /IBM Plex Sans/.test(html) && /IBM Plex Mono/.test(html), 'tipografia Fraunces + IBM Plex Sans/Mono presente');
